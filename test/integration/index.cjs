@@ -264,10 +264,19 @@ suite('rendering', () => {
     await vscode.window.showTextDocument(document);
     await vscode.commands.executeCommand('plantuml.showPreviewToSide', uri);
 
-    // PlantUML answers a broken diagram with a picture of the error, so the
-    // render itself succeeds; the user sees what is wrong rather than nothing.
+    // PlantUML answers a broken diagram with a picture of the error. The preview
+    // keeps showing that picture, so the user sees what is wrong, but the render
+    // is reported as failed and the error is listed in the Problems panel.
     const event = await rendered;
-    assert.equal(typeof event.succeeded, 'boolean');
+    assert.equal(event.succeeded, false, 'a syntax error must not count as a successful render');
+    assert.match(event.message ?? '', /Syntax Error\?/u);
+    assert.ok(event.bytes > 0, 'the picture of the error should still reach the preview');
+
+    const diagnostic = await waitFor('a PlantUML diagnostic for the syntax error', () =>
+      vscode.languages.getDiagnostics(uri).find((candidate) => candidate.source === 'plantuml'),
+    );
+    assert.equal(diagnostic.range.start.line, 1, 'it should point at the offending line');
+    assert.match(diagnostic.message, /Syntax Error\?/u);
     await closeEverything();
   });
 });

@@ -28,7 +28,13 @@ import { RenderCoordinator } from './render/renderCoordinator.js';
  * merely checking that a panel appeared.
  */
 export interface PlantUmlPreviewApi {
-  /** Fires after every render attempt, successful or not. */
+  /**
+   * Fires after every render attempt, successful or not.
+   *
+   * A diagram with a syntax error counts as a failure and carries PlantUML's
+   * message, even though the preview still shows PlantUML's picture of the
+   * error.
+   */
   readonly onDidRender: vscode.Event<RenderEvent>;
 }
 

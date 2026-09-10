@@ -11,6 +11,14 @@
   defecto, de modo que el diagrama se muestra tal como se diseñó y se exporta; `auto` y
   `dark` siguen disponibles para diagramas sin colores propios.
 - La exportación a PNG en modo oscuro usa el mismo fondo que dibuja PlantUML (`#1B1B1B`).
+- Con el motor integrado (el backend por defecto), un error de sintaxis se veía en la
+  vista previa pero no llegaba al panel de Problemas. Ahora aparece en la línea que
+  señala PlantUML, también con `!include` y con otros errores que PlantUML sitúa en una
+  línea, como `Fatal parsing error`; `onDidRender` lo notifica con `succeeded: false`.
+- La línea de un error se toma de la cabecera del informe de PlantUML
+  (`[From … (line N) ]`): un texto del propio diagrama como `retry at line 7` ya no
+  desvía el aviso, y un diagrama válido con una etiqueta «Syntax Error?» ya no se trata
+  como un error.
 
 ### Añadido
 
