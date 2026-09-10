@@ -255,7 +255,7 @@ npm run vendor            # copia el motor PlantUML a media/engine (con SHA-256)
 npm run compile           # compila host de extensión y webview
 npm run lint              # ESLint en modo estricto con información de tipos
 npm run test:unit         # 167 pruebas unitarias, sin VS Code
-npm run test:integration  # 18 pruebas dentro de una instancia real de VS Code
+npm run test:integration  # 19 pruebas dentro de una instancia real de VS Code
 npm run harness           # inspección visual en un navegador (manual)
 npm run package           # genera el .vsix
 npm run verify            # audita el paquete construido

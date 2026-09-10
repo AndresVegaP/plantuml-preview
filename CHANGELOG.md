@@ -1,5 +1,15 @@
 # Changelog
 
+## Sin publicar
+
+### Corregido
+
+- Con los backends `jar` y `server`, el doble clic sobre una forma abría el archivo pero no
+  llevaba el cursor a la línea que la generó.
+- Tras cambiar de `javascript` a `jar` o `server` en el mismo panel, el panel de Problemas
+  podía volver a mostrar los problemas de `!include` de la última renderización con el motor
+  integrado, aunque ya estuvieran corregidos.
+
 ## 1.0.1
 
 ### Corregido
