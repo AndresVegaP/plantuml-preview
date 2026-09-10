@@ -1,0 +1,149 @@
+' Modelo entidad-relación de una tienda en línea.
+'
+' Sirve para probar la vista previa con un diagrama de base de datos realista:
+' entidades con claves primarias y foráneas, tablas intermedias, una relación
+' recursiva, cardinalidades en notación "pata de gallo", paquetes, un enum,
+' notas y leyenda.
+'
+' Cardinalidades:
+'   ||   exactamente uno        |o   cero o uno
+'   |{   uno o varios           o{   cero o varios
+
+@startuml Modelo de base de datos
+title Modelo de datos — tienda en línea
+
+hide circle
+hide empty members
+skinparam shadowing false
+skinparam roundCorner 6
+skinparam defaultFontName sans-serif
+skinparam class {
+  BackgroundColor #FDFDFD
+  BorderColor #4C6EF5
+  ArrowColor #4C6EF5
+  HeaderBackgroundColor #EDF2FF
+}
+skinparam package {
+  BorderColor #ADB5BD
+  FontColor #495057
+}
+
+package "Clientes" {
+  entity "cliente" as cliente {
+    * id_cliente : BIGINT <<PK>>
+    --
+    * email : VARCHAR(255) <<UNIQUE>>
+    * nombre : VARCHAR(120)
+    telefono : VARCHAR(20)
+    * creado_en : TIMESTAMP
+  }
+
+  entity "direccion" as direccion {
+    * id_direccion : BIGINT <<PK>>
+    --
+    * id_cliente : BIGINT <<FK>>
+    * calle : VARCHAR(200)
+    * ciudad : VARCHAR(80)
+    * codigo_postal : VARCHAR(10)
+    * es_principal : BOOLEAN
+  }
+}
+
+package "Catálogo" {
+  entity "categoria" as categoria {
+    * id_categoria : INT <<PK>>
+    --
+    id_categoria_padre : INT <<FK>>
+    * nombre : VARCHAR(80)
+  }
+
+  entity "producto" as producto {
+    * id_producto : BIGINT <<PK>>
+    --
+    * sku : VARCHAR(40) <<UNIQUE>>
+    * nombre : VARCHAR(160)
+    * precio : DECIMAL(10,2)
+    * stock : INT
+    * activo : BOOLEAN
+  }
+
+  entity "producto_categoria" as producto_categoria {
+    * id_producto : BIGINT <<PK, FK>>
+    * id_categoria : INT <<PK, FK>>
+  }
+}
+
+package "Ventas" {
+  entity "pedido" as pedido {
+    * id_pedido : BIGINT <<PK>>
+    --
+    * id_cliente : BIGINT <<FK>>
+    * id_direccion_envio : BIGINT <<FK>>
+    * estado : estado_pedido
+    * total : DECIMAL(12,2)
+    * creado_en : TIMESTAMP
+  }
+
+  entity "linea_pedido" as linea_pedido {
+    * id_pedido : BIGINT <<PK, FK>>
+    * numero_linea : SMALLINT <<PK>>
+    --
+    * id_producto : BIGINT <<FK>>
+    * cantidad : INT
+    * precio_unitario : DECIMAL(10,2)
+  }
+
+  entity "pago" as pago {
+    * id_pago : BIGINT <<PK>>
+    --
+    * id_pedido : BIGINT <<FK>>
+    * metodo : VARCHAR(20)
+    * importe : DECIMAL(12,2)
+    * pagado_en : TIMESTAMP
+  }
+
+  entity "envio" as envio {
+    * id_envio : BIGINT <<PK>>
+    --
+    * id_pedido : BIGINT <<FK, UNIQUE>>
+    transportista : VARCHAR(60)
+    numero_seguimiento : VARCHAR(60)
+    enviado_en : TIMESTAMP
+  }
+
+  enum "estado_pedido" as estado_pedido {
+    PENDIENTE
+    PAGADO
+    ENVIADO
+    ENTREGADO
+    CANCELADO
+  }
+}
+
+cliente ||--o{ direccion : tiene
+cliente ||--o{ pedido : realiza
+direccion ||--o{ pedido : "se envía a"
+
+categoria |o--o{ categoria : "subcategoría de"
+producto ||--o{ producto_categoria
+categoria ||--o{ producto_categoria
+
+pedido ||--|{ linea_pedido : contiene
+producto ||--o{ linea_pedido : "se vende en"
+pedido ||--o{ pago : "se paga con"
+pedido ||--o| envio : "se envía con"
+pedido ..> estado_pedido
+
+note right of linea_pedido
+  El precio se copia al crear la línea,
+  así un cambio en el catálogo no altera
+  pedidos ya realizados.
+end note
+
+legend right
+  | Marca | Significado |
+  | * | columna obligatoria |
+  | PK | clave primaria |
+  | FK | clave foránea |
+endlegend
+@enduml
