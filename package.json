@@ -483,7 +483,7 @@
     "test:unit": "node --test \"test/unit/*.test.mjs\"",
     "test": "npm run compile && npm run lint && npm run test:unit",
     "fetch:plantuml": "node scripts/fetch-plantuml-jar.mjs",
-    "package": "vsce package --no-dependencies --no-rewrite-relative-links --allow-missing-repository --out plantuml-preview.vsix",
+    "package": "vsce package --no-dependencies --out plantuml-preview.vsix",
     "verify": "node scripts/verify-package.mjs",
     "test:integration": "node scripts/run-integration-tests.mjs",
     "harness": "node scripts/run-engine-harness.mjs"
@@ -498,5 +498,13 @@
     "eslint": "^10.10.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.70.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AndresVegaP/plantuml-preview.git"
+  },
+  "homepage": "https://github.com/AndresVegaP/plantuml-preview#readme",
+  "bugs": {
+    "url": "https://github.com/AndresVegaP/plantuml-preview/issues"
   }
 }

@@ -1,0 +1,132 @@
+name: Release
+
+# Pushing a tag such as `v1.0.0` builds the .vsix on a clean GitHub runner, runs
+# the full test and audit suite against it, and publishes it as a GitHub Release
+# together with its SHA-256. For a public repository it also attaches a signed
+# build-provenance attestation, so anyone receiving the file can prove it was
+# produced by this workflow from this exact commit rather than on someone's
+# laptop.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Build, verify and publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the GitHub Release
+      id-token: write # sign the provenance attestation
+      attestations: write # store the provenance attestation
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Check the tag matches package.json
+        run: |
+          expected="v$(node -p "require('./package.json').version")"
+          if [ "$expected" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match package.json version $expected." >&2
+            exit 1
+          fi
+
+      # `npm ci` installs strictly from the lockfile; with ignore-scripts in
+      # .npmrc, no third-party install script runs.
+      - name: Install
+        run: npm ci
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=low
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      # vscode:prepublish cleans, vendors the rendering engine and compiles.
+      - name: Package
+        run: npm run package
+
+      - name: Check the engine checksums have not changed
+        run: git diff --exit-code -- media/engine/MANIFEST.json
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Integration tests
+        run: xvfb-run -a npm run test:integration
+
+      - name: Verify the package
+        run: npm run verify
+
+      - name: Compute the checksum
+        run: sha256sum plantuml-preview.vsix | tee SHA256SUMS.txt
+
+      # Artifact attestations are free for public repositories only.
+      - name: Attest build provenance
+        if: ${{ !github.event.repository.private }}
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: plantuml-preview.vsix
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IS_PRIVATE: ${{ github.event.repository.private }}
+        run: |
+          sha="$(cut -d ' ' -f 1 SHA256SUMS.txt)"
+
+          cat > notes.md <<'NOTES'
+          ## Instalación
+
+          1. Descargue `plantuml-preview.vsix` desde los archivos de esta versión.
+          2. Instálelo:
+
+             ```
+             code --install-extension plantuml-preview.vsix
+             ```
+
+             o desde VS Code: **Extensiones → `...` → Install from VSIX...**
+
+          No necesita Java, Graphviz, un servidor ni conexión a Internet. Requiere VS Code 1.90 o superior.
+
+          ## Verificar la descarga
+
+          SHA-256 del paquete:
+
+          ```
+          @SHA256@
+          ```
+
+          - Windows: `Get-FileHash plantuml-preview.vsix -Algorithm SHA256`
+          - macOS/Linux: `sha256sum plantuml-preview.vsix`
+          NOTES
+
+          if [ "$IS_PRIVATE" != "true" ]; then
+            cat >> notes.md <<'NOTES'
+
+          Procedencia firmada por GitHub (prueba que este archivo lo construyó este flujo de trabajo a partir de este commit):
+
+          ```
+          gh attestation verify plantuml-preview.vsix --repo @REPOSITORY@
+          ```
+          NOTES
+          fi
+
+          sed -i -e "s|@SHA256@|$sha|" -e "s|@REPOSITORY@|$GITHUB_REPOSITORY|" notes.md
+
+          gh release create "$GITHUB_REF_NAME" \
+            plantuml-preview.vsix SHA256SUMS.txt \
+            --title "PlantUML Preview $GITHUB_REF_NAME" \
+            --notes-file notes.md \
+            --verify-tag

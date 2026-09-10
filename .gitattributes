@@ -1,0 +1,11 @@
+# Normalise line endings: LF in the repository and in every working tree.
+#
+# The release pipeline diffs media/engine/MANIFEST.json and publishes a SHA-256
+# of the package, so text files must be byte-identical whether they were checked
+# out on Windows, macOS or Linux.
+* text=auto eol=lf
+
+*.vsix binary
+*.jar  binary
+*.png  binary
+*.ico  binary
