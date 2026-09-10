@@ -492,12 +492,12 @@ export class Preview implements IDisposable {
     this.post({ type: 'setBusy', token });
 
     const prepared = await this.deps.coordinator.prepare(document, block, config);
+    this.lastPrepared = prepared;
     this.watchIncludes(prepared.includedFiles);
     this.updateTitle(block, blocks.length);
 
     if (config.backend === 'javascript') {
       // The webview renders; diagnostics are published when it answers.
-      this.lastPrepared = prepared;
       this.post({
         type: 'render',
         token,
@@ -547,7 +547,13 @@ export class Preview implements IDisposable {
     }
   }
 
-  /** Source prepared for the most recent render, kept for diagnostics. */
+  /**
+   * Source prepared for the most recent render, whichever backend drew it.
+   *
+   * The webview acknowledges host-rendered images too, so its reply publishes
+   * diagnostics through this, and double-click-to-source maps a shape's line
+   * back to the document through it.
+   */
   private lastPrepared: Awaited<ReturnType<RenderCoordinator['prepare']>> | undefined;
 
   /**

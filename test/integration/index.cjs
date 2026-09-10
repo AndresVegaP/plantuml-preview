@@ -11,6 +11,7 @@
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
+const http = require('node:http');
 const os = require('node:os');
 const path = require('node:path');
 
@@ -325,6 +326,131 @@ suite('diagnostics', () => {
 
     await closeEverything();
     await waitFor('diagnostics to clear', () => vscode.languages.getDiagnostics(uri).length === 0);
+  });
+});
+
+/**
+ * Starts a stand-in for a PlantUML server on the loopback interface.
+ *
+ * The `server` backend is the only host-side renderer that can run here: `jar`
+ * needs Java, and a real server needs Docker or the network. Every diagram gets
+ * the same small SVG, which is all the host render path needs.
+ */
+async function stubPlantUmlServer() {
+  let requests = 0;
+  const server = http.createServer((request, response) => {
+    requests += 1;
+    request.resume();
+    response.writeHead(200, { 'content-type': 'image/svg+xml' });
+    response.end(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40">' +
+        '<rect width="120" height="40" fill="#ffffff"/><text x="10" y="25">stub</text></svg>',
+    );
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  return {
+    url: `http://127.0.0.1:${server.address().port}`,
+    requests: () => requests,
+    close: async () => {
+      // The extension's HTTP client keeps connections alive; drop them so that
+      // closing does not wait for them to time out.
+      server.closeAllConnections();
+      await new Promise((resolve) => server.close(resolve));
+    },
+  };
+}
+
+/**
+ * Resolves with the last render event of `uri` once renders have stopped.
+ *
+ * One action can trigger several renders — an edit, the cursor move and the
+ * save each ask for one — and the host finishes its bookkeeping just after the
+ * event fires, so assertions about the end state wait for quiet. Subscribes
+ * synchronously: call it before the action that triggers the renders.
+ */
+async function rendersSettled(api, uri, quietMs = 2_000, timeoutMs = 90_000) {
+  let last;
+  let lastAt = 0;
+  const subscription = api.onDidRender((event) => {
+    if (event.uri.toString() === uri.toString()) {
+      last = event;
+      lastAt = Date.now();
+    }
+  });
+  try {
+    await waitFor(
+      `renders of ${path.basename(uri.fsPath)} to settle`,
+      () => last !== undefined && Date.now() - lastAt >= quietMs,
+      timeoutMs,
+    );
+    return last;
+  } finally {
+    subscription.dispose();
+  }
+}
+
+suite('host backends', () => {
+  /**
+   * A host-side backend used not to record the source it prepared, so when the
+   * webview acknowledged the finished image the preview republished diagnostics
+   * from whatever the built-in engine had prepared last: an include fixed after
+   * switching to `server` stayed in the Problems panel.
+   *
+   * Double-click-to-source maps a shape back to its line through that same
+   * record. It starts from a click inside the webview, which a test running in
+   * the extension host cannot produce, so this covers the shared cause.
+   */
+  test('diagnostics follow the latest server render, not an earlier built-in one', async () => {
+    await closeEverything();
+    const api = await extensionApi();
+    const server = await stubPlantUmlServer();
+    const settings = vscode.workspace.getConfiguration('plantuml');
+
+    try {
+      const uri = await scratchFile(
+        'switch.puml',
+        '@startuml\n!include ./definitely-missing.puml\nA -> B\n@enduml\n',
+      );
+      const document = await vscode.workspace.openTextDocument(uri);
+      const editor = await vscode.window.showTextDocument(document);
+
+      const builtIn = rendersSettled(api, uri);
+      await vscode.commands.executeCommand('plantuml.showPreviewToSide', uri);
+      await builtIn;
+      assert.ok(
+        vscode.languages.getDiagnostics(uri).some((diagnostic) => diagnostic.code === 'include'),
+        'the built-in render should report the missing include',
+      );
+
+      // Backend first: until the URL arrives it is a configuration error, which
+      // renders nothing, so every render from here on goes through the server.
+      const switched = rendersSettled(api, uri);
+      await settings.update('render.backend', 'server', vscode.ConfigurationTarget.Global);
+      await settings.update('render.serverUrl', server.url, vscode.ConfigurationTarget.Global);
+      await switched;
+      assert.ok(server.requests() > 0, 'the preview should now render through the server');
+
+      const requestsBeforeFix = server.requests();
+      const fixed = rendersSettled(api, uri);
+      await editor.edit((builder) => {
+        builder.delete(document.lineAt(1).rangeIncludingLineBreak);
+      });
+      await document.save();
+      const event = await fixed;
+
+      assert.ok(server.requests() > requestsBeforeFix, 'the server should render the fixed diagram');
+      assert.equal(event.succeeded, true, `render failed: ${event.message ?? ''}`);
+      assert.deepEqual(
+        vscode.languages.getDiagnostics(uri).map((diagnostic) => diagnostic.message),
+        [],
+        'the fixed include must not come back from the earlier built-in render',
+      );
+    } finally {
+      await closeEverything();
+      await settings.update('render.backend', undefined, vscode.ConfigurationTarget.Global);
+      await settings.update('render.serverUrl', undefined, vscode.ConfigurationTarget.Global);
+      await server.close();
+    }
   });
 });
 
