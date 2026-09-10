@@ -60,15 +60,24 @@ describe('parseErrorImage', () => {
   });
 
   it('detects a missing Graphviz message', () => {
-    const svg = '<svg xmlns="http://www.w3.org/2000/svg"><text>Cannot find Graphviz</text></svg>';
-    assert.notEqual(parseErrorImage(svg), undefined);
+    // The lines plantuml.jar 1.2026.8 prints when dot is missing. The jar would
+    // not draw them on the machine the other fixtures came from, because it
+    // falls back to a Graphviz of its own there, so this image is written by hand.
+    const svg = [
+      '<svg xmlns="http://www.w3.org/2000/svg"><g>',
+      '<text>Dot Executable: /usr/bin/dot</text>',
+      '<text>File /usr/bin/dot does not exist</text>',
+      '<text>Cannot find Graphviz. You should try</text>',
+      '<text>java -jar plantuml.jar -testdot</text>',
+      '</g></svg>',
+    ].join('');
+    assert.deepEqual(parseErrorImage(svg), { message: 'Dot Executable: /usr/bin/dot' });
   });
 
   it('decodes entities in the recovered text', () => {
     const svg = [
       '<svg xmlns="http://www.w3.org/2000/svg">',
-      '<text>Cannot find Graphviz</text>',
-      '<text>unexpected &lt;tag&gt; &amp; more</text>',
+      '<text>An error has occurred : java.lang.IllegalStateException: unexpected &lt;tag&gt; &amp; more</text>',
       '</svg>',
     ].join('');
     const result = parseErrorImage(svg);
@@ -126,5 +135,56 @@ describe('parseErrorImage on images from the built-in engine', () => {
   it('ignores a diagram whose own label says "Syntax Error?"', () => {
     // @startuml / Client -> User : Syntax Error? / @enduml
     assert.equal(parseErrorImage(engineImage('engine-diagram-labelled-syntax-error')), undefined);
+  });
+
+  it('ignores a diagram whose own label says "An error has occurred"', () => {
+    // @startuml / Server --> Client : An error has occurred / @enduml
+    assert.equal(
+      parseErrorImage(engineImage('engine-diagram-labelled-an-error-has-occurred')),
+      undefined,
+    );
+  });
+
+  it('ignores a diagram that is nothing but a title saying "An error has occurred!"', () => {
+    // @startuml / title An error has occurred! / @enduml
+    assert.equal(
+      parseErrorImage(engineImage('engine-diagram-titled-an-error-has-occurred')),
+      undefined,
+    );
+  });
+
+  it('reports the page the engine draws when Graphviz crashes', () => {
+    // @startuml / class Order / class Customer / Customer "1" --> "*" Order / @enduml
+    // rendered with Viz.instance() swapped for one whose renderString throws.
+    assert.deepEqual(parseErrorImage(engineImage('engine-graphviz-crash')), {
+      message: 'An error has occurred!',
+    });
+  });
+});
+
+/**
+ * Reads an image captured from plantuml.jar, which is also what a PlantUML
+ * server sends back.
+ *
+ * Each fixture is the raw SVG the `jar` backend receives: the stdout of
+ * plantuml-mit-1.2026.8.jar run with JarRenderer's arguments under Java 21, with
+ * `-Duser.language=en -Duser.country=US` so that a crash report does not record
+ * the locale of the machine that captured it.
+ */
+function jarImage(name) {
+  return readFileSync(new URL(`./fixtures/${name}.svg`, import.meta.url), 'utf8').trimEnd();
+}
+
+describe('parseErrorImage on images from plantuml.jar', () => {
+  it('reports PlantUML’s crash report', () => {
+    // @startuml / !pragma teoz true / Alice -> Bob : a / & Bob -> Alice : b / & Alice -> Alice : c / @enduml
+    assert.deepEqual(parseErrorImage(jarImage('jar-crash-report')), {
+      message: 'An error has occurred : java.lang.IllegalStateException: Infinite Loop?',
+    });
+  });
+
+  it('ignores a diagram whose own label says "An error has occurred"', () => {
+    // @startuml / Server --> Client : An error has occurred / @enduml
+    assert.equal(parseErrorImage(jarImage('jar-diagram-labelled-an-error-has-occurred')), undefined);
   });
 });

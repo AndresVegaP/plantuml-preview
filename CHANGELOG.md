@@ -9,6 +9,12 @@
 - Tras cambiar de `javascript` a `jar` o `server` en el mismo panel, el panel de Problemas
   podía volver a mostrar los problemas de `!include` de la última renderización con el motor
   integrado, aunque ya estuvieran corregidos.
+- Un diagrama válido con un texto como `Server --> Client : An error has occurred` ya no
+  se toma por un fallo de PlantUML. Con el motor integrado dejaba un aviso falso en
+  Problemas y `onDidRender` informaba `succeeded: false`; con los backends `jar` y
+  `server`, la vista previa mostraba un mensaje de error en lugar del diagrama. Los
+  informes de fallo de PlantUML y de Graphviz se reconocen ahora por su forma, una
+  página solo de texto que empieza con el aviso, y no por sus palabras.
 
 ## 1.0.1
 
