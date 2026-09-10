@@ -342,7 +342,9 @@ async function svgToPngBase64(svg: string, scale: number): Promise<string> {
   }
   // PNG supports transparency, but a diagram pasted into a document reads far
   // better on an opaque background matching the theme it was rendered for.
-  context.fillStyle = theme === 'dark' ? '#1f1f1f' : '#ffffff';
+  // #1B1B1B is the background PlantUML's own dark mode paints, so the margin
+  // around a dark diagram matches the diagram rather than leaving a seam.
+  context.fillStyle = theme === 'dark' ? '#1b1b1b' : '#ffffff';
   context.fillRect(0, 0, width, height);
   context.drawImage(image, 0, 0, width, height);
 

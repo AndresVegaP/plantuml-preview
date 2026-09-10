@@ -2,7 +2,7 @@
   "name": "plantuml-preview",
   "displayName": "PlantUML Preview",
   "description": "Live preview for PlantUML diagrams, rendered entirely offline. No Java, no server, no telemetry.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "MIT",
   "publisher": "local",
   "private": true,
@@ -339,18 +339,18 @@
         },
         "plantuml.preview.theme": {
           "type": "string",
-          "default": "auto",
+          "default": "light",
           "enum": [
             "auto",
             "light",
             "dark"
           ],
           "enumDescriptions": [
-            "Follow the colour theme of the editor.",
-            "Always render the diagram on a light background.",
-            "Always render the diagram in dark mode."
+            "Follow the editor's colour theme. Only suitable for diagrams that do not set their own colours: PlantUML's dark mode turns text white but keeps explicit skinparam and #colour values.",
+            "Show the diagram exactly as its author styled it, on a white background. This is also how it exports.",
+            "Always use PlantUML's dark mode. Same caveat as auto: light colours set in the diagram can become unreadable."
           ],
-          "markdownDescription": "Colour scheme used for the rendered diagram.",
+          "markdownDescription": "Colour scheme used for the rendered diagram.\n\n`light` shows the diagram as designed, which is also what an export produces. PlantUML's dark mode (`auto` in a dark editor, or `dark`) recolours text to white but keeps any colours the diagram sets itself, so a diagram with light `skinparam` backgrounds becomes unreadable.",
           "scope": "window",
           "order": 12
         },

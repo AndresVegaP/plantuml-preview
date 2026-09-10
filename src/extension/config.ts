@@ -86,7 +86,7 @@ export function readConfiguration(resource: vscode.Uri | undefined): PlantUmlCon
       'live',
     ),
     debounceMs: numberInRange(config.get('preview.debounceMs'), 0, 10_000, 400),
-    theme: enumValue<ThemeMode>(config.get('preview.theme'), ['auto', 'light', 'dark'], 'auto'),
+    theme: enumValue<ThemeMode>(config.get('preview.theme'), ['auto', 'light', 'dark'], 'light'),
     scrollPreviewWithEditor: booleanValue(config.get('preview.scrollPreviewWithEditor'), true),
     doubleClickToSource: booleanValue(config.get('preview.doubleClickToSource'), true),
     zoomStep: numberInRange(config.get('preview.zoomStep'), 1.01, 4, 1.2),

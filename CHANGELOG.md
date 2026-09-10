@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.0.1
+
+### Corregido
+
+- Con un editor en tema oscuro, los diagramas que definen sus propios colores claros
+  (por ejemplo `skinparam class { BackgroundColor #FDFDFD }`) se veían con texto blanco
+  sobre cajas blancas. El modo oscuro de PlantUML cambia el texto a blanco pero respeta
+  los colores fijados en el diagrama. `plantuml.preview.theme` pasa a ser `light` por
+  defecto, de modo que el diagrama se muestra tal como se diseñó y se exporta; `auto` y
+  `dark` siguen disponibles para diagramas sin colores propios.
+- La exportación a PNG en modo oscuro usa el mismo fondo que dibuja PlantUML (`#1B1B1B`).
+
+### Añadido
+
+- Ejemplo `samples/database-model.puml`: modelo entidad-relación de una tienda en línea.
+
 ## 1.0.0
 
 Primera versión.

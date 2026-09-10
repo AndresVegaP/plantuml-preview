@@ -114,6 +114,7 @@ suite('configuration', () => {
     assert.equal(config.get('render.backend'), 'javascript');
     assert.equal(config.get('render.allowRemoteServer'), false);
     assert.equal(config.get('preview.updateMode'), 'live');
+    assert.equal(config.get('preview.theme'), 'light');
     assert.equal(config.get('include.allowOutsideWorkspace'), false);
     assert.equal(config.get('diagnostics.enabled'), true);
   });

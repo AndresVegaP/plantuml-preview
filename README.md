@@ -177,7 +177,7 @@ docker run -d -p 8080:8080 plantuml/plantuml-server:jetty
 | `plantuml.render.allowRemoteServer` | `false` | Permite un servidor fuera de esta máquina |
 | `plantuml.preview.updateMode` | `live` | `live`, `onSave` o `manual` |
 | `plantuml.preview.debounceMs` | `400` | Pausa antes de re-renderizar al escribir |
-| `plantuml.preview.theme` | `auto` | `auto`, `light` o `dark` |
+| `plantuml.preview.theme` | `light` | `light` (tal como se diseñó y se exporta), `auto` o `dark` |
 | `plantuml.preview.scrollPreviewWithEditor` | `true` | La vista previa sigue al cursor |
 | `plantuml.preview.doubleClickToSource` | `true` | Doble clic lleva a la línea de origen |
 | `plantuml.include.enabled` | `true` | Resolver `!include` |
@@ -186,6 +186,12 @@ docker run -d -p 8080:8080 plantuml/plantuml-server:jetty
 | `plantuml.export.format` | `svg` | Formato predeterminado de exportación |
 | `plantuml.export.pngScale` | `2` | Densidad de píxeles al exportar a PNG |
 | `plantuml.diagnostics.enabled` | `true` | Errores de sintaxis en el panel de Problemas |
+
+> **Tema oscuro.** Con un editor oscuro, el diagrama se muestra a propósito sobre fondo
+> blanco. El modo oscuro de PlantUML (`auto` o `dark`) cambia el texto a blanco pero
+> respeta los colores que fija el propio diagrama, así que un diagrama con fondos claros
+> en `skinparam` queda con texto blanco sobre cajas blancas. Use `auto` o `dark` solo con
+> diagramas que no definan sus propios colores.
 
 ---
 
