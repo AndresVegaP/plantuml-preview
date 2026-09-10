@@ -3,6 +3,7 @@
  */
 
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 
 import { parseErrorImage, parseErrorText } from '../../out/extension/render/errorParser.js';
@@ -47,17 +48,15 @@ describe('parseErrorImage', () => {
     assert.equal(parseErrorImage(svg), undefined);
   });
 
-  it('detects PlantUML’s rendered error image', () => {
+  it('detects PlantUML’s error report by its location header', () => {
     const svg = [
       '<svg xmlns="http://www.w3.org/2000/svg">',
-      '<text>Syntax Error?</text>',
-      '<text>Error line 4 in file: -</text>',
+      '<text>[From string (line 4) ]</text>',
+      '<text>@startuml</text>',
+      '<text> Syntax Error?</text>',
       '</svg>',
     ].join('');
-    const result = parseErrorImage(svg);
-    assert.notEqual(result, undefined);
-    assert.equal(result.line, 3);
-    assert.match(result.message, /Syntax Error/u);
+    assert.deepEqual(parseErrorImage(svg), { message: 'Syntax Error?', line: 3 });
   });
 
   it('detects a missing Graphviz message', () => {
@@ -68,7 +67,7 @@ describe('parseErrorImage', () => {
   it('decodes entities in the recovered text', () => {
     const svg = [
       '<svg xmlns="http://www.w3.org/2000/svg">',
-      '<text>Syntax Error?</text>',
+      '<text>Cannot find Graphviz</text>',
       '<text>unexpected &lt;tag&gt; &amp; more</text>',
       '</svg>',
     ].join('');
@@ -79,11 +78,53 @@ describe('parseErrorImage', () => {
   it('reads text out of tspan children too', () => {
     const svg = [
       '<svg xmlns="http://www.w3.org/2000/svg">',
-      '<tspan>Syntax Error?</tspan>',
-      '<tspan>at line 2</tspan>',
+      '<text><tspan>[From string (line 2) ]</tspan></text>',
+      '<text><tspan> Syntax Error?</tspan></text>',
       '</svg>',
     ].join('');
     const result = parseErrorImage(svg);
     assert.equal(result.line, 1);
+  });
+});
+
+/**
+ * Reads an image captured from the built-in engine.
+ *
+ * Each fixture is the sanitised SVG the preview webview posts back to the host,
+ * produced by @plantuml/core 1.2026.8 in the engine harness (`npm run harness`).
+ * They are real output rather than hand-written markup, so these tests break if
+ * the engine ever changes how it reports an error. The PlantUML source behind
+ * each one is quoted in its test, one line per ` / `.
+ */
+function engineImage(name) {
+  return readFileSync(new URL(`./fixtures/${name}.svg`, import.meta.url), 'utf8').trimEnd();
+}
+
+describe('parseErrorImage on images from the built-in engine', () => {
+  it('reports a syntax error on the line PlantUML names', () => {
+    // @startuml / Alice -> Bob / this is bad @@@ / @enduml
+    assert.deepEqual(parseErrorImage(engineImage('engine-syntax-error')), {
+      message: 'Syntax Error? (Assumed diagram type: sequence)',
+      line: 2,
+    });
+  });
+
+  it('takes the line from the report header, not from echoed source that mentions a line', () => {
+    // @startuml / Alice -> Bob : retry at line 7 / this is bad @@@ / @enduml
+    const result = parseErrorImage(engineImage('engine-syntax-error-echoing-a-line-number'));
+    assert.equal(result?.line, 2);
+  });
+
+  it('recognises errors other than "Syntax Error?"', () => {
+    // @startuml / !include <tupadr3/common> / Alice -> Bob / @enduml
+    assert.deepEqual(parseErrorImage(engineImage('engine-fatal-parsing-error')), {
+      message: 'Fatal parsing error',
+      line: 1,
+    });
+  });
+
+  it('ignores a diagram whose own label says "Syntax Error?"', () => {
+    // @startuml / Client -> User : Syntax Error? / @enduml
+    assert.equal(parseErrorImage(engineImage('engine-diagram-labelled-syntax-error')), undefined);
   });
 });

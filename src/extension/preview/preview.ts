@@ -20,6 +20,7 @@ import { parseWebviewMessage, type HostMessage } from '../../shared/protocol.js'
 import { readConfiguration, type PlantUmlConfiguration } from '../config.js';
 import type { DiagnosticsManager } from '../diagnostics.js';
 import { describeError, type Logger } from '../logger.js';
+import { parseErrorImage } from '../render/errorParser.js';
 import type { RenderCoordinator } from '../render/renderCoordinator.js';
 import type { RenderFailure } from '../render/renderer.js';
 import { renderWebviewHtml, type WebviewResources } from './webviewHtml.js';
@@ -48,10 +49,15 @@ export interface PreviewDependencies {
  */
 export interface RenderEvent {
   readonly uri: vscode.Uri;
+  /**
+   * False when the diagram could not be drawn, and also when PlantUML drew its
+   * error report in place of the diagram: the preview shows that picture, but
+   * the source has a problem.
+   */
   readonly succeeded: boolean;
-  /** Present on success. */
+  /** Present whenever the preview received an image, error report included. */
   readonly durationMs?: number;
-  /** Size of the sanitised SVG, present on success. */
+  /** Size of the sanitised SVG, present whenever the preview received an image. */
   readonly bytes?: number;
   /** Present on failure. */
   readonly message?: string;
@@ -357,7 +363,7 @@ export class Preview implements IDisposable {
         }
         break;
 
-      case 'rendered':
+      case 'rendered': {
         if (message.token !== this.token) {
           return;
         }
@@ -369,14 +375,28 @@ export class Preview implements IDisposable {
             `The sanitiser removed constructs from the rendered diagram: ${message.removals.join(', ')}.`,
           );
         }
+        // PlantUML answers a broken diagram with a valid SVG that draws the
+        // error, so the webview cannot tell it from a diagram. The picture stays
+        // on screen, because it shows the user what is wrong, but the failure is
+        // reported like any other: in the API and in the Problems panel.
+        const imageError = parseErrorImage(message.svg);
+        const failure: RenderFailure | undefined =
+          imageError === undefined
+            ? undefined
+            : {
+                message: imageError.message,
+                ...(imageError.line === undefined ? {} : { sourceLine: imageError.line }),
+              };
         this.onDidRenderEmitter.fire({
           uri: this.resource,
-          succeeded: true,
+          succeeded: failure === undefined,
           durationMs: message.durationMs,
           bytes: message.svg.length,
+          ...(failure === undefined ? {} : { message: failure.message }),
         });
-        void this.publishDiagnostics(undefined);
+        void this.publishDiagnostics(failure);
         break;
+      }
 
       case 'renderFailed':
         if (message.token !== this.token) {
