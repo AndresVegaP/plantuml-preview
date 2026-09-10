@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>PlantUML engine harness</title>
+</head>
+<body>
+<!--
+  Exercises the shipped rendering path outside VS Code.
+
+  This loads the *vendored* engine and the *compiled* sanitiser — the same
+  bytes the .vsix contains — renders a set of diagrams, sanitises each result
+  and records what happened in `window.__harness`. It is the end-to-end proof
+  that the extension can draw a diagram with no Java, no Graphviz binary and no
+  network.
+-->
+<div id="status">running…</div>
+<div id="out"></div>
+
+<script src="/media/engine/viz-global.js"></script>
+<script type="module">
+  import { renderToString } from '/media/engine/plantuml.js';
+  import { sanitiseSvg } from '/media/dist/shared/svgSanitizer.js';
+
+  const CASES = [
+    {
+      name: 'sequence',
+      source: '@startuml\nAlice -> Bob : Authentication Request\nBob --> Alice : Response\n@enduml',
+      expect: /Alice/,
+    },
+    {
+      name: 'class (needs Graphviz layout)',
+      source: '@startuml\nclass Order\nclass Customer\nCustomer "1" --> "*" Order\n@enduml',
+      expect: /Order/,
+    },
+    {
+      name: 'activity',
+      source: '@startuml\nstart\n:read input;\nif (valid?) then (yes)\n  :store;\nelse (no)\n  :reject;\nendif\nstop\n@enduml',
+      expect: /read input/,
+    },
+    {
+      name: 'state',
+      source: '@startuml\n[*] --> Draft\nDraft --> Sent : submit\nSent --> [*]\n@enduml',
+      expect: /Draft/,
+    },
+    {
+      name: 'mindmap',
+      source: '@startmindmap\n* root\n** child\n@endmindmap',
+      expect: /root/,
+    },
+    {
+      name: 'syntax error is reported as an error image',
+      source: '@startuml\nthis is not valid plantuml @@@\n@enduml',
+      expect: /Syntax Error|Error/i,
+    },
+  ];
+
+  function render(source, dark) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('timeout')), 30000);
+      renderToString(
+        source.split('\n'),
+        (svg) => { clearTimeout(timer); resolve(svg); },
+        (error) => { clearTimeout(timer); reject(error instanceof Error ? error : new Error(String(error))); },
+        { dark: dark === true, maxSvgSize: 16384 },
+      );
+    });
+  }
+
+  const results = [];
+
+  for (const testCase of CASES) {
+    const entry = { name: testCase.name };
+    const started = performance.now();
+    try {
+      const raw = await render(testCase.source, false);
+      entry.rawBytes = raw.length;
+      entry.durationMs = Math.round(performance.now() - started);
+      entry.isSvg = raw.trimStart().startsWith('<svg') || raw.includes('<svg');
+
+      const sanitised = sanitiseSvg(raw);
+      entry.sanitiserOk = sanitised.ok;
+      if (sanitised.ok) {
+        entry.cleanBytes = sanitised.value.svg.length;
+        entry.removals = sanitised.value.removals;
+        entry.matchesExpectation = testCase.expect.test(sanitised.value.svg);
+        // Prove the cleaned markup is real, parseable SVG.
+        const parsed = new DOMParser().parseFromString(sanitised.value.svg, 'image/svg+xml');
+        entry.parses = parsed.getElementsByTagName('parsererror').length === 0;
+        entry.elementCount = parsed.documentElement.getElementsByTagName('*').length;
+      } else {
+        entry.sanitiserError = sanitised.error;
+      }
+      entry.ok = entry.isSvg === true && entry.sanitiserOk === true &&
+                 entry.parses === true && entry.matchesExpectation === true;
+    } catch (error) {
+      entry.ok = false;
+      entry.error = error instanceof Error ? error.message : String(error);
+    }
+    results.push(entry);
+  }
+
+  // Dark mode must produce different output from light mode, or the theme
+  // setting is silently doing nothing.
+  try {
+    const light = await render('@startuml\nAlice -> Bob : hi\n@enduml', false);
+    const dark = await render('@startuml\nAlice -> Bob : hi\n@enduml', true);
+    results.push({
+      name: 'dark mode differs from light mode',
+      ok: light !== dark && dark.includes('<svg'),
+      lightBytes: light.length,
+      darkBytes: dark.length,
+    });
+  } catch (error) {
+    results.push({ name: 'dark mode', ok: false, error: String(error) });
+  }
+
+  const passed = results.filter((entry) => entry.ok).length;
+  window.__harness = { passed, total: results.length, results };
+  document.getElementById('status').textContent = `${passed}/${results.length} passed`;
+</script>
+</body>
+</html>

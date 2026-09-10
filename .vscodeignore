@@ -1,0 +1,50 @@
+# Everything here is excluded from the .vsix.
+#
+# The rule of thumb: the package contains compiled output, assets and docs, and
+# nothing that was only needed to produce them.
+
+# Sources and build inputs
+src/**
+test/**
+scripts/**
+docs/**
+.github/**
+
+# Dependencies and downloaded tooling. `.vscode-test` holds a full VS Code
+# build during integration testing; it must never reach the package.
+node_modules/**
+vendor/**
+.vscode-test/**
+coverage/**
+
+# Editor and agent state
+.vscode/**
+.claude/**
+.git/**
+.gitignore
+.editorconfig
+.npmrc
+
+# Build configuration
+tsconfig*.json
+eslint.config.mjs
+.eslintcache
+package-lock.json
+
+# TypeScript sources and source maps never ship. Note there is deliberately no
+# `!**/*.d.ts` exception here: the package contains no type declarations, and
+# such a negation would drag declaration files back in from every excluded
+# directory above.
+**/*.ts
+**/*.map
+
+# Everything below is intentionally INCLUDED, listed here as documentation:
+#   out/**                       compiled extension host code
+#   media/preview.css            preview stylesheet
+#   media/dist/**                compiled webview code
+#   media/engine/**              the vendored MIT PlantUML JavaScript engine
+#   media/icons/**               file icons
+#   syntaxes/**                  TextMate grammar
+#   language-configuration.json  language configuration
+#   samples/**                   example diagrams
+#   README.md CHANGELOG.md LICENSE SECURITY.md package.json

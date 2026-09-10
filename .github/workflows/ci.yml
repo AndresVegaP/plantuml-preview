@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # `npm ci` installs strictly from the lockfile; combined with the
+      # ignore-scripts setting in .npmrc, no third-party install script runs.
+      - name: Install
+        run: npm ci
+
+      # The whole premise of this extension is a clean audit, so a new advisory
+      # in any dependency — including development ones — fails the build.
+      - name: Audit dependencies
+        run: npm audit --audit-level=low
+
+      - name: Vendor the rendering engine
+        run: npm run vendor
+
+      - name: Check the vendored engine is reproducible
+        run: node scripts/vendor-engine.mjs --check
+
+      # The manifest is tracked, so vendoring must not change it. A diff here
+      # means the engine's bytes moved without anyone recording it.
+      - name: Check the engine checksums have not changed
+        run: git diff --exit-code -- media/engine/MANIFEST.json
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Compile
+        run: npm run compile
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      # VS Code needs a display server on Linux.
+      - name: Integration tests (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:integration
+
+      - name: Integration tests
+        if: runner.os != 'Linux'
+        run: npm run test:integration
+
+      - name: Package
+        run: npm run package
+
+      - name: Verify the package
+        run: npm run verify
+
+      - uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          name: plantuml-preview-vsix
+          path: plantuml-preview.vsix
+          if-no-files-found: error

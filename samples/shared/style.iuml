@@ -1,0 +1,13 @@
+' Shared styling, pulled in with !include.
+' Included files have their @startuml/@enduml delimiters stripped
+' automatically, exactly as PlantUML itself does.
+
+skinparam shadowing false
+skinparam roundCorner 8
+skinparam classAttributeIconSize 0
+
+skinparam class {
+  BackgroundColor #FDFDFD
+  BorderColor #4C6EF5
+  ArrowColor #4C6EF5
+}

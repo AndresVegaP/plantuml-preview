@@ -1,0 +1,502 @@
+{
+  "name": "plantuml-preview",
+  "displayName": "PlantUML Preview",
+  "description": "Live preview for PlantUML diagrams, rendered entirely offline. No Java, no server, no telemetry.",
+  "version": "1.0.0",
+  "license": "MIT",
+  "publisher": "local",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Visualization"
+  ],
+  "keywords": [
+    "plantuml",
+    "uml",
+    "diagram",
+    "preview",
+    "offline"
+  ],
+  "main": "./out/extension/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "In a restricted workspace only the built-in JavaScript renderer is used. The renderers that start an external program or contact a server stay disabled until the workspace is trusted.",
+      "restrictedConfigurations": [
+        "plantuml.render.backend",
+        "plantuml.render.javaPath",
+        "plantuml.render.jarPath",
+        "plantuml.render.serverUrl",
+        "plantuml.render.jvmArguments",
+        "plantuml.include.paths"
+      ]
+    },
+    "virtualWorkspaces": {
+      "supported": "limited",
+      "description": "On a virtual file system the built-in JavaScript renderer works, but local !include resolution and export to disk may be unavailable."
+    }
+  },
+  "activationEvents": [
+    "onWebviewPanel:plantuml.preview"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "plantuml",
+        "aliases": [
+          "PlantUML",
+          "plantuml"
+        ],
+        "extensions": [
+          ".puml",
+          ".plantuml",
+          ".pu",
+          ".iuml",
+          ".wsd",
+          ".pml"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./media/icons/file-light.svg",
+          "dark": "./media/icons/file-dark.svg"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "plantuml",
+        "scopeName": "source.plantuml",
+        "path": "./syntaxes/plantuml.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "plantuml.showPreview",
+        "title": "Open Preview",
+        "category": "PlantUML",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "plantuml.showPreviewToSide",
+        "title": "Open Preview to the Side",
+        "category": "PlantUML",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "plantuml.showLockedPreviewToSide",
+        "title": "Open Locked Preview to the Side",
+        "category": "PlantUML",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "plantuml.showSource",
+        "title": "Show Source",
+        "category": "PlantUML",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "plantuml.preview.refresh",
+        "title": "Refresh Preview",
+        "category": "PlantUML",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "plantuml.preview.toggleLock",
+        "title": "Toggle Preview Locking",
+        "category": "PlantUML"
+      },
+      {
+        "command": "plantuml.preview.selectDiagram",
+        "title": "Select Diagram in File",
+        "category": "PlantUML",
+        "icon": "$(list-selection)"
+      },
+      {
+        "command": "plantuml.preview.zoomIn",
+        "title": "Zoom In",
+        "category": "PlantUML"
+      },
+      {
+        "command": "plantuml.preview.zoomOut",
+        "title": "Zoom Out",
+        "category": "PlantUML"
+      },
+      {
+        "command": "plantuml.preview.zoomReset",
+        "title": "Reset Zoom",
+        "category": "PlantUML"
+      },
+      {
+        "command": "plantuml.preview.copyImage",
+        "title": "Copy Diagram to Clipboard",
+        "category": "PlantUML"
+      },
+      {
+        "command": "plantuml.export",
+        "title": "Export Diagram...",
+        "category": "PlantUML",
+        "icon": "$(save-as)"
+      },
+      {
+        "command": "plantuml.showDiagnostics",
+        "title": "Show Renderer Log",
+        "category": "PlantUML"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "plantuml.showPreviewToSide",
+        "key": "ctrl+k v",
+        "mac": "cmd+k v",
+        "when": "editorFocus && editorLangId == plantuml && !notebookEditorFocused"
+      },
+      {
+        "command": "plantuml.showPreview",
+        "key": "shift+ctrl+v",
+        "mac": "shift+cmd+v",
+        "when": "editorFocus && editorLangId == plantuml && !notebookEditorFocused"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "plantuml.showPreviewToSide",
+          "when": "editorLangId == plantuml && !notebookEditorFocused",
+          "alt": "plantuml.showPreview",
+          "group": "navigation@1"
+        },
+        {
+          "command": "plantuml.showSource",
+          "when": "activeWebviewPanelId == 'plantuml.preview'",
+          "group": "navigation@1"
+        },
+        {
+          "command": "plantuml.preview.refresh",
+          "when": "activeWebviewPanelId == 'plantuml.preview'",
+          "group": "navigation@2"
+        },
+        {
+          "command": "plantuml.export",
+          "when": "activeWebviewPanelId == 'plantuml.preview' || editorLangId == plantuml",
+          "group": "1_plantuml"
+        },
+        {
+          "command": "plantuml.preview.toggleLock",
+          "when": "activeWebviewPanelId == 'plantuml.preview'",
+          "group": "1_plantuml"
+        },
+        {
+          "command": "plantuml.preview.selectDiagram",
+          "when": "activeWebviewPanelId == 'plantuml.preview' || editorLangId == plantuml",
+          "group": "1_plantuml"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "plantuml.showPreviewToSide",
+          "when": "editorLangId == plantuml",
+          "group": "navigation"
+        },
+        {
+          "command": "plantuml.export",
+          "when": "editorLangId == plantuml",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "plantuml.showPreview",
+          "when": "resourceLangId == plantuml",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "plantuml.preview.zoomIn",
+          "when": "activeWebviewPanelId == 'plantuml.preview'"
+        },
+        {
+          "command": "plantuml.preview.zoomOut",
+          "when": "activeWebviewPanelId == 'plantuml.preview'"
+        },
+        {
+          "command": "plantuml.preview.zoomReset",
+          "when": "activeWebviewPanelId == 'plantuml.preview'"
+        },
+        {
+          "command": "plantuml.preview.copyImage",
+          "when": "activeWebviewPanelId == 'plantuml.preview'"
+        },
+        {
+          "command": "plantuml.showSource",
+          "when": "activeWebviewPanelId == 'plantuml.preview'"
+        },
+        {
+          "command": "plantuml.preview.toggleLock",
+          "when": "activeWebviewPanelId == 'plantuml.preview'"
+        },
+        {
+          "command": "plantuml.preview.refresh",
+          "when": "activeWebviewPanelId == 'plantuml.preview'"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "PlantUML Preview",
+      "properties": {
+        "plantuml.render.backend": {
+          "type": "string",
+          "default": "javascript",
+          "enum": [
+            "javascript",
+            "jar",
+            "server"
+          ],
+          "enumDescriptions": [
+            "Render in the preview itself with the bundled PlantUML JavaScript engine. Fully offline, needs nothing installed, and never leaves the editor.",
+            "Render by running a local plantuml.jar with Java. Highest fidelity and supports every export format, but you must install Java and provide the jar.",
+            "Render by calling a PlantUML server over HTTP. Use this only with a server you control, such as one you run locally in Docker: the diagram text is sent to it."
+          ],
+          "markdownDescription": "How diagrams are turned into images.\n\n`javascript` is the default because it needs no installation and no network.",
+          "scope": "window",
+          "order": 0
+        },
+        "plantuml.render.javaPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Absolute path to the `java` executable used by the `jar` backend. Leave empty to search `JAVA_HOME` and then `PATH`.",
+          "scope": "machine",
+          "order": 1
+        },
+        "plantuml.render.jarPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Absolute path to `plantuml.jar` for the `jar` backend. Run `npm run fetch:plantuml` in the extension folder to download a checksum-verified copy.",
+          "scope": "machine",
+          "order": 2
+        },
+        "plantuml.render.jvmArguments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Extra arguments passed to the JVM before `-jar`, for example `-Xmx1024m`. Each array entry is passed as one argument and is never interpreted by a shell.",
+          "scope": "machine",
+          "order": 3
+        },
+        "plantuml.render.serverUrl": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Base URL of the PlantUML server for the `server` backend, for example `http://localhost:8080`.\n\n**Your diagram text is sent to this address.** Only point it at a server you control. Public servers are refused unless `#plantuml.render.allowRemoteServer#` is enabled.",
+          "scope": "window",
+          "order": 4
+        },
+        "plantuml.render.allowRemoteServer": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Allow `#plantuml.render.serverUrl#` to point somewhere other than the local machine. Off by default so diagram content cannot leave the machine by accident.",
+          "scope": "window",
+          "order": 5
+        },
+        "plantuml.render.timeoutMs": {
+          "type": "number",
+          "default": 20000,
+          "minimum": 1000,
+          "maximum": 600000,
+          "markdownDescription": "How long a single render may take before it is abandoned, in milliseconds.",
+          "scope": "window",
+          "order": 6
+        },
+        "plantuml.preview.updateMode": {
+          "type": "string",
+          "default": "live",
+          "enum": [
+            "live",
+            "onSave",
+            "manual"
+          ],
+          "enumDescriptions": [
+            "Re-render as you type, after a short pause.",
+            "Re-render only when the file is saved.",
+            "Re-render only when you run Refresh Preview."
+          ],
+          "markdownDescription": "When the preview re-renders.",
+          "scope": "window",
+          "order": 10
+        },
+        "plantuml.preview.debounceMs": {
+          "type": "number",
+          "default": 400,
+          "minimum": 0,
+          "maximum": 10000,
+          "markdownDescription": "Pause in typing before a `live` re-render starts, in milliseconds.",
+          "scope": "window",
+          "order": 11
+        },
+        "plantuml.preview.theme": {
+          "type": "string",
+          "default": "auto",
+          "enum": [
+            "auto",
+            "light",
+            "dark"
+          ],
+          "enumDescriptions": [
+            "Follow the colour theme of the editor.",
+            "Always render the diagram on a light background.",
+            "Always render the diagram in dark mode."
+          ],
+          "markdownDescription": "Colour scheme used for the rendered diagram.",
+          "scope": "window",
+          "order": 12
+        },
+        "plantuml.preview.scrollPreviewWithEditor": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Move the preview to the diagram your cursor is in, in files that hold several diagrams.",
+          "scope": "window",
+          "order": 13
+        },
+        "plantuml.preview.doubleClickToSource": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Double-clicking the preview moves the cursor to that diagram in the source file.",
+          "scope": "window",
+          "order": 14
+        },
+        "plantuml.preview.zoomStep": {
+          "type": "number",
+          "default": 1.2,
+          "minimum": 1.01,
+          "maximum": 4,
+          "markdownDescription": "Multiplier applied by Zoom In and Zoom Out.",
+          "scope": "window",
+          "order": 15
+        },
+        "plantuml.include.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Resolve `!include`, `!includesub` and `!includedef` directives before rendering, so diagrams split across files work in the preview.",
+          "scope": "window",
+          "order": 20
+        },
+        "plantuml.include.paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Extra folders searched for `!include` targets, in addition to the folder of the file being previewed. Relative entries are resolved against the workspace folder.",
+          "scope": "resource",
+          "order": 21
+        },
+        "plantuml.include.maxDepth": {
+          "type": "number",
+          "default": 10,
+          "minimum": 0,
+          "maximum": 64,
+          "markdownDescription": "How many levels of nested `!include` are followed before the preview reports a cycle.",
+          "scope": "window",
+          "order": 22
+        },
+        "plantuml.include.allowOutsideWorkspace": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Allow `!include` to read files outside the workspace folder and the configured include paths. Off by default so a diagram file cannot pull arbitrary files off your disk into the preview.",
+          "scope": "window",
+          "order": 23
+        },
+        "plantuml.export.format": {
+          "type": "string",
+          "default": "svg",
+          "enum": [
+            "svg",
+            "png"
+          ],
+          "enumDescriptions": [
+            "Scalable vector image.",
+            "Raster image, rendered at the configured scale."
+          ],
+          "markdownDescription": "Default format used by Export Diagram.",
+          "scope": "window",
+          "order": 30
+        },
+        "plantuml.export.pngScale": {
+          "type": "number",
+          "default": 2,
+          "minimum": 1,
+          "maximum": 8,
+          "markdownDescription": "Pixel density multiplier applied when exporting to PNG.",
+          "scope": "window",
+          "order": 31
+        },
+        "plantuml.export.directory": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Folder that Export Diagram writes to. Relative paths are resolved against the workspace folder. Leave empty to write next to the source file.",
+          "scope": "resource",
+          "order": 32
+        },
+        "plantuml.diagnostics.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Report diagram syntax errors in the Problems panel.",
+          "scope": "window",
+          "order": 40
+        },
+        "plantuml.trace": {
+          "type": "string",
+          "default": "off",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "markdownDescription": "Detail level written to the PlantUML Preview output channel.",
+          "scope": "window",
+          "order": 41
+        }
+      }
+    },
+    "configurationDefaults": {
+      "[plantuml]": {
+        "editor.wordWrap": "off",
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run clean && npm run vendor && npm run compile",
+    "clean": "node scripts/clean.mjs",
+    "vendor": "node scripts/vendor-engine.mjs",
+    "compile": "npm run compile:extension && npm run compile:webview",
+    "compile:extension": "tsc -p tsconfig.extension.json",
+    "compile:webview": "tsc -p tsconfig.webview.json",
+    "watch": "tsc -p tsconfig.extension.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test:unit": "node --test \"test/unit/*.test.mjs\"",
+    "test": "npm run compile && npm run lint && npm run test:unit",
+    "fetch:plantuml": "node scripts/fetch-plantuml-jar.mjs",
+    "package": "vsce package --no-dependencies --no-rewrite-relative-links --allow-missing-repository --out plantuml-preview.vsix",
+    "verify": "node scripts/verify-package.mjs",
+    "test:integration": "node scripts/run-integration-tests.mjs",
+    "harness": "node scripts/run-engine-harness.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@plantuml/core": "1.2026.8",
+    "@types/node": "^22.20.2",
+    "@types/vscode": "^1.90.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^3.9.2",
+    "eslint": "^10.10.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.70.0"
+  }
+}

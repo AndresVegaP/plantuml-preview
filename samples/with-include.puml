@@ -1,0 +1,31 @@
+' Diagrams split across files work in the preview: the extension resolves
+' !include itself, relative to this file, before rendering.
+'
+' Only files inside the workspace (or a folder listed in
+' plantuml.include.paths) can be read. Remote includes are never fetched.
+
+@startuml Classes
+!include shared/style.iuml
+
+title Domain model
+
+class Order {
+  +id: OrderId
+  +total: Money
+  +place(): void
+}
+
+class OrderLine {
+  +sku: Sku
+  +quantity: int
+}
+
+class Customer {
+  +id: CustomerId
+  +name: string
+}
+
+Customer "1" --> "*" Order : places
+Order "1" *-- "1..*" OrderLine
+
+@enduml

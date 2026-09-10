@@ -1,0 +1,39 @@
+{
+  "comments": {
+    "lineComment": "'",
+    "blockComment": ["/'", "'/"]
+  },
+  "brackets": [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"]
+  ],
+  "autoClosingPairs": [
+    { "open": "{", "close": "}" },
+    { "open": "[", "close": "]" },
+    { "open": "(", "close": ")" },
+    { "open": "\"", "close": "\"", "notIn": ["string"] }
+  ],
+  "surroundingPairs": [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"],
+    ["\"", "\""]
+  ],
+  "folding": {
+    "markers": {
+      "start": "^\\s*(?:@start[a-z]+\\b|.*\\{\\s*$|(?:if|loop|alt|opt|par|critical|group|while|fork|split|partition|legend)\\b)",
+      "end": "^\\s*(?:@end[a-z]+\\b|\\}|end\\b|endif\\b|endwhile\\b)"
+    }
+  },
+  "indentationRules": {
+    "increaseIndentPattern": "^\\s*(?:.*\\{\\s*$|(?:if|loop|alt|opt|par|critical|group|while|fork|split|partition|legend)\\b.*)$",
+    "decreaseIndentPattern": "^\\s*(?:\\}|end\\b|else\\b|elseif\\b|endif\\b|endwhile\\b)"
+  },
+  "onEnterRules": [
+    {
+      "beforeText": "^\\s*@startuml\\b.*$",
+      "action": { "indent": "none" }
+    }
+  ]
+}

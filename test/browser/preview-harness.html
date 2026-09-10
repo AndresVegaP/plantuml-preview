@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="/media/preview.css" />
+<title>PlantUML preview harness</title>
+<style>
+  /*
+    VS Code supplies these theme variables to a real webview. The harness
+    supplies a plausible dark-theme set so the preview's own stylesheet can be
+    inspected outside the editor.
+  */
+  :root {
+    --vscode-font-family: "Segoe UI", system-ui, sans-serif;
+    --vscode-font-size: 13px;
+    --vscode-foreground: #cccccc;
+    --vscode-descriptionForeground: #9d9d9d;
+    --vscode-editor-background: #1f1f1f;
+    --vscode-editorWidget-background: #252526;
+    --vscode-panel-border: #3c3c3c;
+    --vscode-focusBorder: #0078d4;
+    --vscode-toolbar-hoverBackground: #3a3a3a;
+    --vscode-errorForeground: #f48771;
+    --vscode-textCodeBlock-background: #2a2a2a;
+    --vscode-editor-font-family: "Cascadia Code", Consolas, monospace;
+    --vscode-editorIndentGuide-background: #303030;
+  }
+</style>
+</head>
+<!--
+  Drives the real webview bundle outside VS Code.
+
+  This page reproduces the markup that `webviewHtml.ts` emits, stubs the
+  `acquireVsCodeApi` bridge, and then loads the *compiled* `main.js`. It is how
+  the preview's rendering, sanitising, zooming and error states can be inspected
+  and screenshotted without launching the editor.
+-->
+<body class="plantuml-preview" data-state="loading">
+<script type="application/json" id="plantuml-bootstrap">
+{"engineModuleUri":"/media/engine/plantuml.js","useBuiltInEngine":true,"theme":"light","zoomStep":1.2,"doubleClickToSource":true,"initialStatus":"built-in engine · live"}
+</script>
+
+<div id="viewport" class="viewport" tabindex="0" role="img" aria-label="PlantUML diagram">
+  <div id="canvas" class="canvas"></div>
+</div>
+
+<div id="overlay" class="overlay" role="status" aria-live="polite">
+  <div class="overlay__panel">
+    <div id="overlay-title" class="overlay__title">Starting the PlantUML engine…</div>
+    <pre id="overlay-detail" class="overlay__detail" hidden></pre>
+  </div>
+</div>
+
+<div id="toolbar" class="toolbar" role="toolbar" aria-label="Diagram view controls">
+  <button type="button" id="zoom-out" class="toolbar__button" title="Zoom out" aria-label="Zoom out">&#8722;</button>
+  <button type="button" id="zoom-level" class="toolbar__button toolbar__button--wide" title="Reset zoom to 100%" aria-label="Reset zoom">100%</button>
+  <button type="button" id="zoom-in" class="toolbar__button" title="Zoom in" aria-label="Zoom in">+</button>
+  <button type="button" id="fit-width" class="toolbar__button toolbar__button--wide" title="Fit the diagram to the window" aria-label="Fit to window">Fit</button>
+</div>
+
+<div id="status" class="status"></div>
+
+<script>
+  // Stand-in for the bridge VS Code injects. Records outbound messages so the
+  // harness can assert on what the webview reported.
+  window.__sent = [];
+  window.acquireVsCodeApi = () => ({
+    postMessage: (message) => { window.__sent.push(message); },
+    getState: () => undefined,
+    setState: () => undefined,
+  });
+</script>
+<script src="/media/engine/viz-global.js"></script>
+<script type="module" src="/media/dist/webview/main.js"></script>
+<script type="module">
+  // Wait for the webview to report readiness, then drive it exactly as the
+  // extension host would.
+  const ready = async () => {
+    for (let i = 0; i < 600; i++) {
+      if (window.__sent.some((message) => message.type === 'ready')) return true;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return false;
+  };
+
+  window.__drive = async (source, token = 1, theme = 'light') => {
+    window.postMessage({ type: 'render', token, lines: source.split('\n'), theme }, '*');
+    for (let i = 0; i < 600; i++) {
+      const reply = window.__sent.find(
+        (message) =>
+          (message.type === 'rendered' || message.type === 'renderFailed') && message.token === token,
+      );
+      if (reply) return reply;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return { type: 'timeout' };
+  };
+
+  window.__ready = await ready();
+
+  await window.__drive(
+    [
+      '@startuml',
+      'title Checkout, happy path',
+      'actor Customer',
+      'participant "Web app" as Web',
+      'participant "Order service" as Orders',
+      'database "Ledger" as Ledger',
+      'Customer -> Web : Place order',
+      'activate Web',
+      'Web -> Orders : POST /orders',
+      'activate Orders',
+      'Orders -> Ledger : reserve funds',
+      'activate Ledger',
+      'Ledger --> Orders : reservation id',
+      'deactivate Ledger',
+      'Orders --> Web : 201 Created',
+      'deactivate Orders',
+      'Web --> Customer : Confirmation',
+      'deactivate Web',
+      '@enduml',
+    ].join('\n'),
+  );
+</script>
+</body>
+</html>

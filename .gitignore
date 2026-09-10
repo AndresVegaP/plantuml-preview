@@ -1,0 +1,30 @@
+# Build output
+dist/
+out/
+*.vsix
+*.tsbuildinfo
+
+# Dependencies
+node_modules/
+
+# Tooling caches
+.vscode-test/
+coverage/
+.eslintcache
+
+# Optional plantuml.jar, fetched on demand and never committed
+vendor/
+
+# The vendored rendering engine is a build artefact: `npm run vendor` copies it
+# out of the pinned @plantuml/core devDependency. Only its checksum manifest is
+# tracked, so that an engine change shows up as a diff instead of passing
+# silently.
+media/engine/*
+!media/engine/MANIFEST.json
+
+# Agent state
+.claude/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db

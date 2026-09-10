@@ -1,0 +1,44 @@
+' A single file may hold several diagrams.
+' Move the cursor between them and the preview follows,
+' or pin one with: PlantUML: Select Diagram in File.
+
+@startuml Components
+title Deployment
+
+node "Edge" {
+  [Reverse proxy]
+}
+node "Application" {
+  [API]
+  [Worker]
+}
+database "Postgres" as db
+
+[Reverse proxy] --> [API]
+[API] --> db
+[Worker] --> db
+
+@enduml
+
+@startuml States
+title Order lifecycle
+
+[*] --> Draft
+Draft --> Submitted : submit
+Submitted --> Paid : payment cleared
+Submitted --> Cancelled : timeout
+Paid --> Shipped : dispatch
+Shipped --> [*]
+Cancelled --> [*]
+
+@enduml
+
+@startmindmap Priorities
+* Q3
+** Reliability
+*** Error budget
+*** On-call rotation
+** Performance
+*** p95 latency
+** Cost
+@endmindmap

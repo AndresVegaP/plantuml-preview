@@ -1,0 +1,31 @@
+@startuml Checkout
+title Checkout, happy path
+
+actor Customer
+participant "Web app" as Web
+participant "Order service" as Orders
+database "Ledger" as Ledger
+
+Customer -> Web : Place order
+activate Web
+
+Web -> Orders : POST /orders
+activate Orders
+
+Orders -> Ledger : reserve funds
+activate Ledger
+Ledger --> Orders : reservation id
+deactivate Ledger
+
+Orders --> Web : 201 Created
+deactivate Orders
+
+Web --> Customer : Confirmation
+deactivate Web
+
+note over Orders, Ledger
+  The reservation is released
+  automatically after 15 minutes.
+end note
+
+@enduml

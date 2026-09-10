@@ -1,0 +1,15 @@
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "editor.formatOnSave": false,
+  "files.exclude": {
+    "out": true,
+    "media/dist": true,
+    "media/engine": true
+  },
+  "search.exclude": {
+    "out": true,
+    "media/dist": true,
+    "media/engine": true,
+    "node_modules": true
+  }
+}

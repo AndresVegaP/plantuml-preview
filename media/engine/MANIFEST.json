@@ -1,0 +1,19 @@
+{
+  "engine": "@plantuml/core",
+  "version": "1.2026.8",
+  "license": "MIT",
+  "files": {
+    "plantuml.js": {
+      "bytes": 3947570,
+      "sha256": "ade8f15ed7f2a3225814332d3ac6d05bc7ebdbbec8630512cc7cf678bc0c4d52"
+    },
+    "viz-global.js": {
+      "bytes": 1445436,
+      "sha256": "fc6ca2de83dd4e3fca967d5214122777890a5cd1ab101115a1f716fc84e6dc5e"
+    },
+    "LICENSE": {
+      "bytes": 3666,
+      "sha256": "b0475db7325c48eede0eee5e44aea92dad28c755aed4484a6cdde99cedea9446"
+    }
+  }
+}
