@@ -280,6 +280,35 @@ suite('rendering', () => {
     assert.match(diagnostic.message, /Syntax Error\?/u);
     await closeEverything();
   });
+
+  test('a label that reads like a PlantUML crash is still a successful render', async () => {
+    await closeEverything();
+    const api = await extensionApi();
+
+    const rendered = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('no render within 90 s')), 90_000);
+      const subscription = api.onDidRender((event) => {
+        clearTimeout(timer);
+        subscription.dispose();
+        resolve(event);
+      });
+    });
+
+    const uri = await scratchFile(
+      'labelled.puml',
+      ['@startuml', 'Server --> Client : An error has occurred', '@enduml', ''].join('\n'),
+    );
+    const document = await vscode.workspace.openTextDocument(uri);
+    await vscode.window.showTextDocument(document);
+    await vscode.commands.executeCommand('plantuml.showPreviewToSide', uri);
+
+    // Those are the words of PlantUML's crash banner, but here they are just the
+    // label of an arrow in a valid diagram.
+    const event = await rendered;
+    assert.equal(event.succeeded, true, `a label was taken for a failure: ${event.message ?? ''}`);
+    assert.equal(event.message, undefined);
+    await closeEverything();
+  });
 });
 
 suite('diagnostics', () => {
