@@ -18,7 +18,7 @@ completo.
 | Sin vulnerabilidades | `npm audit` limpio, **cero dependencias de runtime** |
 | Sin instalar nada externo | El motor PlantUML va compilado a JavaScript/WebAssembly dentro del paquete |
 | Que nada salga de la máquina | El renderizado ocurre dentro del editor; la red está bloqueada por CSP |
-| Auditable | Código tipado en modo estricto, 176 pruebas unitarias y 20 de integración |
+| Auditable | Código tipado en modo estricto, 183 pruebas unitarias y 21 de integración |
 
 ---
 
@@ -254,8 +254,8 @@ npm install               # dependencias de desarrollo
 npm run vendor            # copia el motor PlantUML a media/engine (con SHA-256)
 npm run compile           # compila host de extensión y webview
 npm run lint              # ESLint en modo estricto con información de tipos
-npm run test:unit         # 176 pruebas unitarias, sin VS Code
-npm run test:integration  # 20 pruebas dentro de una instancia real de VS Code
+npm run test:unit         # 183 pruebas unitarias, sin VS Code
+npm run test:integration  # 21 pruebas dentro de una instancia real de VS Code
 npm run harness           # inspección visual en un navegador (manual)
 npm run package           # genera el .vsix
 npm run verify            # audita el paquete construido
