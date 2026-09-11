@@ -49,12 +49,15 @@ describe('parseErrorImage', () => {
   });
 
   it('detects PlantUML’s error report by its location header', () => {
+    // The layout of every report: the header on a bar of its own, then the
+    // source echoed below that bar, then the error.
     const svg = [
-      '<svg xmlns="http://www.w3.org/2000/svg">',
-      '<text>[From string (line 4) ]</text>',
-      '<text>@startuml</text>',
-      '<text> Syntax Error?</text>',
-      '</svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg"><g>',
+      '<rect x="5" y="27" width="156" height="21"/>',
+      '<text x="6" y="42">[From string (line 4) ]</text>',
+      '<text x="5" y="78">@startuml</text>',
+      '<text x="5" y="94"> Syntax Error?</text>',
+      '</g></svg>',
     ].join('');
     assert.deepEqual(parseErrorImage(svg), { message: 'Syntax Error?', line: 3 });
   });
@@ -86,13 +89,14 @@ describe('parseErrorImage', () => {
 
   it('reads text out of tspan children too', () => {
     const svg = [
-      '<svg xmlns="http://www.w3.org/2000/svg">',
-      '<text><tspan>[From string (line 2) ]</tspan></text>',
-      '<text><tspan> Syntax Error?</tspan></text>',
-      '</svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg"><g>',
+      '<rect x="5" y="27" width="156" height="21"/>',
+      '<text x="6" y="42"><tspan>[From string (line 2) ]</tspan></text>',
+      '<text x="5" y="62"><tspan> Syntax Error?</tspan></text>',
+      '</g></svg>',
     ].join('');
     const result = parseErrorImage(svg);
-    assert.equal(result.line, 1);
+    assert.equal(result?.line, 1);
   });
 });
 
@@ -137,6 +141,35 @@ describe('parseErrorImage on images from the built-in engine', () => {
     assert.equal(parseErrorImage(engineImage('engine-diagram-labelled-syntax-error')), undefined);
   });
 
+  it('ignores a diagram whose own label is a report header', () => {
+    // @startuml / Server --> Client : [From string (line 2) ] / @enduml
+    assert.equal(
+      parseErrorImage(engineImage('engine-diagram-labelled-a-report-header')),
+      undefined,
+    );
+  });
+
+  it('ignores a diagram that is nothing but a title quoting a report header', () => {
+    // @startuml / title [From string (line 2) ] / @enduml
+    assert.equal(parseErrorImage(engineImage('engine-diagram-titled-a-report-header')), undefined);
+  });
+
+  it('ignores a box whose text opens with a report header', () => {
+    // @startuml / :[From string (line 2) ] / Syntax Error?; / @enduml
+    assert.equal(
+      parseErrorImage(engineImage('engine-diagram-with-a-report-header-in-a-box')),
+      undefined,
+    );
+  });
+
+  it('ignores a page of text that opens with a report header', () => {
+    // @startcreole / [From string (line 2) ] / Syntax Error? / @endcreole
+    assert.equal(
+      parseErrorImage(engineImage('engine-text-page-opening-with-a-report-header')),
+      undefined,
+    );
+  });
+
   it('ignores a diagram whose own label says "An error has occurred"', () => {
     // @startuml / Server --> Client : An error has occurred / @enduml
     assert.equal(
@@ -176,6 +209,27 @@ function jarImage(name) {
 }
 
 describe('parseErrorImage on images from plantuml.jar', () => {
+  it('reports a syntax error in a short diagram, below the welcome text PlantUML adds', () => {
+    // @startuml / Alice -> Bob / this is bad @@@ / @enduml
+    assert.deepEqual(parseErrorImage(jarImage('jar-syntax-error')), {
+      message: 'Syntax Error? (Assumed diagram type: sequence)',
+      line: 2,
+    });
+  });
+
+  it('reports a syntax error in a longer diagram', () => {
+    // @startuml / Alice -> Bob / Bob -> Carol / Carol -> Dave / Dave -> Erin / this is bad @@@ / @enduml
+    assert.deepEqual(parseErrorImage(jarImage('jar-syntax-error-in-a-longer-diagram')), {
+      message: 'Syntax Error? (Assumed diagram type: sequence)',
+      line: 5,
+    });
+  });
+
+  it('ignores a diagram whose own label is a report header', () => {
+    // @startuml / Server --> Client : [From string (line 2) ] / @enduml
+    assert.equal(parseErrorImage(jarImage('jar-diagram-labelled-a-report-header')), undefined);
+  });
+
   it('reports PlantUML’s crash report', () => {
     // @startuml / !pragma teoz true / Alice -> Bob : a / & Bob -> Alice : b / & Alice -> Alice : c / @enduml
     assert.deepEqual(parseErrorImage(jarImage('jar-crash-report')), {

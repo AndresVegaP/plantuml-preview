@@ -15,6 +15,12 @@
   `server`, la vista previa mostraba un mensaje de error en lugar del diagrama. Los
   informes de fallo de PlantUML y de Graphviz se reconocen ahora por su forma, una
   página solo de texto que empieza con el aviso, y no por sus palabras.
+- Un diagrama válido con un texto como `Server --> Client : [From string (line 2) ]` ya
+  no se toma por un error de sintaxis, con los mismos síntomas: un aviso falso y
+  `succeeded: false` con el motor integrado, y un mensaje de error en lugar del diagrama
+  con `jar` y `server`. La cabecera `[From … (line N) ]` del informe de error cuenta
+  ahora solo donde la imprime PlantUML: sobre una barra propia, en una página que no
+  dibuja más que rectángulos y con el resto del informe debajo de esa barra.
 
 ## 1.0.1
 
